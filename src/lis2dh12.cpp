@@ -14,13 +14,16 @@
 #endif
 
 /**
- * Configures the driver with access over I2C.
- * @note Call this from the Arduino setup function.
- * @note Make sure the I2C library has been initialized with a call to its begin function for example.
- * @note When SA0 is low, the address is 0x18, when SA0 is high it's 0x19.
- * @param[in] i2c_library A pointer to the i2c library to use.
- * @param[in] i2c_address The i2c address of the device.
- * @return 0 in case of success, or a negative error code otherwise.
+ * @brief Configures the driver for I2C communication
+ *
+ * Sets up the LIS2DH12 to communicate over I2C. The I2C address depends on the
+ * SA0 pin: 0x18 when SA0 is LOW, 0x19 when SA0 is HIGH.
+ *
+ * @param[in] i2c_library Reference to the TwoWire I2C library instance (typically Wire)
+ * @param[in] i2c_address I2C address of the device (default: 0x18)
+ * @return 0 on success, or a negative error code otherwise
+ * @note Call this from the Arduino setup() function
+ * @note Make sure the I2C library has been initialized with Wire.begin()
  */
 int lis2dh12::setup(TwoWire &i2c_library, uint8_t i2c_address) {
 
@@ -36,13 +39,16 @@ int lis2dh12::setup(TwoWire &i2c_library, uint8_t i2c_address) {
 }
 
 /**
- * Configures the driver with access over SPI.
- * @note Call this from the Arduino setup function.
- * @note Make sure the SPI library has been initialized with a call to its begin function for example.
- * @note Only 4-wire SPI interface is supported for now. If you'd like to use the 3-wire SPI interface, you're welcome to submit a pull-request.
- * @param[in] spi_library A pointer to the spi library to use.
- * @param[in] spi_pin_ss The pin used for chip select.
- * @return 0 in case of success, or a negative error code otherwise.
+ * @brief Configures the driver for SPI communication
+ *
+ * Sets up the LIS2DH12 to communicate over SPI. Only 4-wire SPI is supported.
+ *
+ * @param[in] spi_library Reference to the SPIClass library instance (typically SPI)
+ * @param[in] spi_pin_cs GPIO pin number connected to the chip select (CS) pin
+ * @param[in] spi_speed SPI clock speed in Hz (default: 10000000)
+ * @return 0 on success, or a negative error code otherwise
+ * @note Call this from the Arduino setup() function
+ * @note Make sure the SPI library has been initialized with SPI.begin()
  */
 int lis2dh12::setup(SPIClass &spi_library, const int spi_pin_cs, const int spi_speed) {
     int res;
@@ -60,8 +66,11 @@ int lis2dh12::setup(SPIClass &spi_library, const int spi_pin_cs, const int spi_s
 }
 
 /**
- * Tries to detect the device.
- * @return true if the device has been detected, or false otherwise.
+ * @brief Detects if the LIS2DH12 device is present
+ *
+ * Reads the device ID register and verifies it matches the expected value (0x33).
+ *
+ * @return true if device is detected, false otherwise
  */
 bool lis2dh12::detect(void) {
     int res;
@@ -76,10 +85,13 @@ bool lis2dh12::detect(void) {
 }
 
 /**
+ * @brief Gets the current measurement range
  *
+ * Reads the CTRL_REG4 register to determine the current full-scale range setting.
+ *
+ * @param[out] range_g Output parameter for the current range setting
+ * @return 0 on success, or a negative error code otherwise
  * @see Datasheet section 8.9 "CTRL_REG4 (23h)"
- * @param[out] scale
- * @return 0 in case of success, or a negative error code otherwise.
  */
 int lis2dh12::range_get(enum lis2dh12_range &range_g) {
     int res;
@@ -100,10 +112,15 @@ int lis2dh12::range_get(enum lis2dh12_range &range_g) {
 }
 
 /**
+ * @brief Sets the measurement range
  *
+ * Configures the full-scale range by setting the FS bits in CTRL_REG4.
+ * If activity detection is configured, it will be automatically adjusted
+ * to the new range.
+ *
+ * @param[in] range_g Desired range (LIS2DH12_RANGE_2G, LIS2DH12_RANGE_4G, etc.)
+ * @return 0 on success, or a negative error code otherwise
  * @see Datasheet section 8.9 "CTRL_REG4 (23h)"
- * @param[in] scale
- * @return 0 in case of success, or a negative error code otherwise.
  */
 int lis2dh12::range_set(const enum lis2dh12_range range_g) {
     int res;
@@ -160,9 +177,14 @@ int lis2dh12::range_set(const enum lis2dh12_range range_g) {
 }
 
 /**
- * @brief
- * @param
- * @return
+ * @brief Gets the current resolution setting
+ *
+ * Reads the control registers to determine the current resolution mode
+ * (8-bit, 10-bit, or 12-bit).
+ *
+ * @param[out] resolution Output parameter for the current resolution setting
+ * @return 0 on success, or a negative error code otherwise
+ * @note This function is not yet fully implemented
  */
 int lis2dh12::resolution_get(enum lis2dh12_resolution &resolution) {
 
@@ -173,9 +195,14 @@ int lis2dh12::resolution_get(enum lis2dh12_resolution &resolution) {
 }
 
 /**
- * @brief
- * @param
- * @return
+ * @brief Sets the output data resolution
+ *
+ * Configures the resolution mode by setting the LPEN and HR bits in the
+ * control registers. Higher resolution provides better accuracy but may
+ * consume more power.
+ *
+ * @param[in] resolution Desired resolution (LIS2DH12_RESOLUTION_8BITS, etc.)
+ * @return 0 on success, or a negative error code otherwise
  */
 int lis2dh12::resolution_set(const enum lis2dh12_resolution resolution) {
     int res;
@@ -230,10 +257,13 @@ int lis2dh12::resolution_set(const enum lis2dh12_resolution resolution) {
 }
 
 /**
- * Retrieves the sampling rate.
+ * @brief Gets the current sampling rate
+ *
+ * Reads the CTRL_REG1 register to determine the current output data rate (ODR).
+ *
+ * @param[out] sampling_hz Output parameter for the current sampling rate
+ * @return 0 on success, or a negative error code otherwise
  * @see Datasheet section 8.8 "CTRL_REG1 (20h)"
- * @param[out] hz A pointer to a variable that will be updated with the rate in hertz.
- * @return 0 in case of success, or a negative error code otherwise.
  */
 int lis2dh12::sampling_get(enum lis2dh12_sampling &sampling_hz) {
     int res;
@@ -281,10 +311,15 @@ int lis2dh12::sampling_get(enum lis2dh12_sampling &sampling_hz) {
 }
 
 /**
- * Sets the sampling rate.
+ * @brief Sets the output data rate (sampling rate)
+ *
+ * Configures how often the sensor samples acceleration data by setting the ODR
+ * bits in CTRL_REG1. If activity detection is configured, it will be automatically
+ * adjusted to the new sampling rate.
+ *
+ * @param[in] smapling_hz Desired sampling rate (LIS2DH12_SAMPLING_100HZ, etc.)
+ * @return 0 on success, or a negative error code otherwise
  * @see Datasheet section 8.8 "CTRL_REG1 (20h)"
- * @param[in] hz The rate to use in hertz. Can be any of the following values: 0, 1, 10, 25, 50, 100, 200, 400, 1344, 1600, 5376.
- * @return 0 in case of success, or a negative error code otherwise.
  */
 int lis2dh12::sampling_set(const enum lis2dh12_sampling smapling_hz) {
     int res;
@@ -376,11 +411,15 @@ int lis2dh12::sampling_set(const enum lis2dh12_sampling smapling_hz) {
 }
 
 /**
+ * @brief Enables or disables individual axes
  *
- * @param[in] enabled_x
- * @param[in] enabled_y
- * @param[in] enabled_z
- * @return 0 in case of success, or a negative error code otherwise.
+ * Configures which axes are active for measurement. Disabling unused axes
+ * can help reduce power consumption.
+ *
+ * @param[in] enabled_x Enable (true) or disable (false) X axis
+ * @param[in] enabled_y Enable (true) or disable (false) Y axis
+ * @param[in] enabled_z Enable (true) or disable (false) Z axis
+ * @return 0 on success, or a negative error code otherwise
  */
 int lis2dh12::axis_enabled_set(const bool enabled_x, const bool enabled_y, const bool enabled_z) {
     int res;
@@ -409,10 +448,13 @@ int lis2dh12::axis_enabled_set(const bool enabled_x, const bool enabled_y, const
 }
 
 /**
+ * @brief Enables or disables a specific axis
  *
- * @param[in] axis
- * @param[in] enabled
- * @return 0 in case of success, or a negative error code otherwise.
+ * Configures a single axis to be enabled or disabled for measurement.
+ *
+ * @param[in] axis Axis to configure (LIS2DH12_AXIS_X, LIS2DH12_AXIS_Y, or LIS2DH12_AXIS_Z)
+ * @param[in] enabled Enable (true) or disable (false) the axis
+ * @return 0 on success, or a negative error code otherwise
  */
 int lis2dh12::axis_enabled_set(const enum lis2dh12_axis axis, const bool enabled) {
     int res;
@@ -461,10 +503,14 @@ int lis2dh12::axis_enabled_set(const enum lis2dh12_axis axis, const bool enabled
 }
 
 /**
- * @brief
- * @param
- * @param accel
- * @return
+ * @brief Reads raw acceleration value for a specific axis
+ *
+ * Reads the high and low byte registers for the specified axis and combines
+ * them into a 16-bit signed integer value.
+ *
+ * @param[in] axis Axis to read (LIS2DH12_AXIS_X, LIS2DH12_AXIS_Y, or LIS2DH12_AXIS_Z)
+ * @param[out] accel Output parameter for the raw acceleration value
+ * @return 0 on success, or a negative error code otherwise
  */
 int lis2dh12::acceleration_read(const enum lis2dh12_axis axis, int16_t &accel) {
     int res;
@@ -502,10 +548,14 @@ int lis2dh12::acceleration_read(const enum lis2dh12_axis axis, int16_t &accel) {
 }
 
 /**
- * @brief
- * @param
- * @param accel
- * @return
+ * @brief Reads acceleration value in g-force for a specific axis
+ *
+ * Reads the raw acceleration value and converts it to g-force units based
+ * on the current measurement range setting.
+ *
+ * @param[in] axis Axis to read (LIS2DH12_AXIS_X, LIS2DH12_AXIS_Y, or LIS2DH12_AXIS_Z)
+ * @param[out] accel Output parameter for the acceleration in g-force units
+ * @return 0 on success, or a negative error code otherwise
  */
 int lis2dh12::acceleration_read(const enum lis2dh12_axis axis, float &accel) {
     int res;
@@ -578,11 +628,15 @@ int lis2dh12::acceleration_read(const enum lis2dh12_axis axis, float &accel) {
 }
 
 /**
+ * @brief Reads raw acceleration values for all three axes
  *
- * @param[out] accel_x
- * @param[out] accel_y
- * @param[out] accel_z
- * @return
+ * Reads the output registers for all three axes and returns the raw 16-bit
+ * signed integer values. This is more efficient than reading each axis separately.
+ *
+ * @param[out] accel_x Output parameter for X-axis raw acceleration value
+ * @param[out] accel_y Output parameter for Y-axis raw acceleration value
+ * @param[out] accel_z Output parameter for Z-axis raw acceleration value
+ * @return 0 on success, or a negative error code otherwise
  */
 int lis2dh12::acceleration_read(int16_t &accel_x, int16_t &accel_y, int16_t &accel_z) {
     int res;
@@ -621,11 +675,15 @@ int lis2dh12::acceleration_read(int16_t &accel_x, int16_t &accel_y, int16_t &acc
 }
 
 /**
+ * @brief Reads acceleration values in g-force for all three axes
  *
- * @param[out] accel_x
- * @param[out] accel_y
- * @param[out] accel_z
- * @return
+ * Reads the output registers for all three axes and converts them to g-force
+ * units based on the current measurement range setting.
+ *
+ * @param[out] accel_x Output parameter for X-axis acceleration in g
+ * @param[out] accel_y Output parameter for Y-axis acceleration in g
+ * @param[out] accel_z Output parameter for Z-axis acceleration in g
+ * @return 0 on success, or a negative error code otherwise
  */
 int lis2dh12::acceleration_read(float &accel_x, float &accel_y, float &accel_z) {
     int res;
@@ -699,11 +757,15 @@ int lis2dh12::acceleration_read(float &accel_x, float &accel_y, float &accel_z) 
 }
 
 /**
+ * @brief Reads acceleration values in g-force for all three axes (double precision)
  *
- * @param[out] accel_x
- * @param[out] accel_y
- * @param[out] accel_z
- * @return
+ * Reads the output registers for all three axes and converts them to g-force
+ * units with double precision. Use this when you need higher precision calculations.
+ *
+ * @param[out] accel_x Output parameter for X-axis acceleration in g
+ * @param[out] accel_y Output parameter for Y-axis acceleration in g
+ * @param[out] accel_z Output parameter for Z-axis acceleration in g
+ * @return 0 on success, or a negative error code otherwise
  */
 int lis2dh12::acceleration_read(double &accel_x, double &accel_y, double &accel_z) {
     int res;
@@ -777,10 +839,15 @@ int lis2dh12::acceleration_read(double &accel_x, double &accel_y, double &accel_
 }
 
 /**
+ * @brief Sets the interrupt signal polarity
  *
+ * Configures whether interrupt pins (INT1, INT2) are active HIGH or active LOW
+ * by setting the IEA bit in CTRL_REG6.
+ *
+ * @param[in] polarity Desired interrupt polarity
+ * @return 0 on success, or a negative error code otherwise
  * @see Application note section 5.1 "Interrupt pin configuration"
  * @see Datasheet section 8.13 "CTRL_REG6 (25h)"
- * @return 0 in case of success, or a negative error code otherwise.
  */
 int lis2dh12::interrupts_polarity_set(const enum lis2dh12_interrupt_polarity polarity) {
     int res;
@@ -810,14 +877,20 @@ int lis2dh12::interrupts_polarity_set(const enum lis2dh12_interrupt_polarity pol
 }
 
 /**
- * Configures the (in)activity detection feature.
+ * @brief Configures the activity/inactivity detection feature
+ *
+ * The sensor can detect when movement exceeds a threshold (activity) or when
+ * movement stays below the threshold for a duration (inactivity). This is useful
+ * for wake-up applications and power management. The threshold is automatically
+ * adjusted based on the current measurement range.
+ *
+ * @param[in] threshold_mg Threshold in millig above which movements are considered activity
+ * @param[in] duration_ms Duration in milliseconds before entering inactivity state
+ * @return 0 on success, or a negative error code otherwise
  * @see Application note section 10 "Activity / Inactivity recognition"
  * @see Datasheet section 3.2.4 "Sleep-to-wake and Return-to-sleep"
  * @see Datasheet section 8.33 "ACT_THS (3Eh)"
  * @see Datasheet section 8.34 "ACT_DUR (3Fh)"
- * @param[in] threshold Threshold in millig above which movements will be considered as activity.
- * @param[in] duration Duration in milliseconds before entering inactivity state when movement is below threshold.
- * @return 0 in case of success, or a negative error code otherwise.
  */
 int lis2dh12::activity_configure(const uint16_t threshold_mg, const uint32_t duration_ms) {
     int res;
@@ -911,12 +984,15 @@ int lis2dh12::activity_configure(const uint16_t threshold_mg, const uint32_t dur
 }
 
 /**
- * Route the (in)activity status to the INT2 pin.
- * With this feature INT2 is high when the system is in inactivity and goes low when the system is in activity.
- * The INT_POLARITY bit controls the polarity of the activity / inactivity signal.
+ * @brief Routes activity/inactivity status to INT2 pin
+ *
+ * When enabled, the INT2 pin will reflect the activity/inactivity status.
+ * INT2 is HIGH when inactive and LOW when active. The polarity can be
+ * configured using interrupts_polarity_set().
+ *
+ * @param[in] routed true to route to INT2, false to disable
+ * @return 0 on success, or a negative error code otherwise
  * @see Application note section 10 "Activity / Inactivity recognition"
- * @param[in] enabled
- * @return 0 in case of success, or a negative error code otherwise.
  */
 int lis2dh12::activity_int2_routed_set(const bool routed) {
     int res;
@@ -946,13 +1022,19 @@ int lis2dh12::activity_int2_routed_set(const bool routed) {
 }
 
 /**
- * @brief
- * @param threshold_mg
- * @param time_limit_ms
- * @param time_latency_ms
- * @param time_window_ms
- * @param latch
- * @return
+ * @brief Configures the double tap detection feature
+ *
+ * Sets up the sensor to detect double tap events. The configuration includes
+ * threshold, timing parameters, and interrupt latching. For best results,
+ * use a sampling rate of 400 Hz or higher in high-resolution mode.
+ *
+ * @param[in] threshold_mg Threshold in millig for tap detection
+ * @param[in] time_limit_ms Maximum time for the tap to occur (in milliseconds)
+ * @param[in] time_latency_ms Time between the first and second tap (in milliseconds)
+ * @param[in] time_window_ms Maximum time window for the second tap (in milliseconds)
+ * @param[in] latch Enable interrupt latching (true) or disable (false)
+ * @return 0 on success, or a negative error code otherwise
+ * @see doc/STMicroelectronics LIS2DH12 Design note DT0101.pdf for detailed configuration guide
  */
 int lis2dh12::doubletap_configure(const uint16_t threshold_mg, const uint32_t time_limit_ms, const uint32_t time_latency_ms, const uint32_t time_window_ms, const bool latch) {
     int res;
@@ -1070,10 +1152,14 @@ int lis2dh12::doubletap_configure(const uint16_t threshold_mg, const uint32_t ti
 }
 
 /**
- * Reads the value of a register from the device over i2c or spi.
- * @param[in] reg_addr The address of the register.
- * @param[out] reg_value A pointer to a variable that will be updated with the value of the register.
- * @return 0 in case of success, or a negative error code otherwise.
+ * @brief Reads a single register from the device
+ *
+ * Low-level function to directly read a register over I2C or SPI. Most users
+ * should use the higher-level functions instead.
+ *
+ * @param[in] reg_addr Register address to read
+ * @param[out] reg_value Output parameter for the register value
+ * @return 0 on success, or a negative error code otherwise
  */
 int lis2dh12::register_read(const enum lis2dh12_register reg_addr, uint8_t &reg_value) {
 
@@ -1083,7 +1169,7 @@ int lis2dh12::register_read(const enum lis2dh12_register reg_addr, uint8_t &reg_
         m_i2c_library->beginTransmission(m_i2c_address);
         m_i2c_library->write((uint8_t)reg_addr);
         if (m_i2c_library->endTransmission(false) != 0) return -EIO;
-        if (m_i2c_library->requestFrom(m_i2c_address, (uint8_t)1, (uint8_t) true) != 1) return -EIO;
+        if (m_i2c_library->requestFrom(m_i2c_address, (uint8_t)1, (uint8_t)true) != 1) return -EIO;
         reg_value = m_i2c_library->read();
     }
 
@@ -1109,10 +1195,15 @@ int lis2dh12::register_read(const enum lis2dh12_register reg_addr, uint8_t &reg_
 }
 
 /**
- * Reads the value of multiple registers from the device over i2c or spi.
- * @param[in] reg_addr The address of the register.
- * @param[out] reg_values A pointer to a variable that will be updated with the value of the register.
- * @return 0 in case of success, or a negative error code otherwise.
+ * @brief Reads multiple consecutive registers from the device
+ *
+ * Low-level function to directly read multiple registers. The device supports
+ * auto-increment addressing for efficient multi-register reads over I2C or SPI.
+ *
+ * @param[in] reg_addr Starting register address
+ * @param[out] reg_values Array to store the register values
+ * @param[in] count Number of registers to read
+ * @return 0 on success, or a negative error code otherwise
  */
 int lis2dh12::register_read(const enum lis2dh12_register reg_addr, uint8_t reg_values[], const size_t count) {
 
@@ -1122,7 +1213,7 @@ int lis2dh12::register_read(const enum lis2dh12_register reg_addr, uint8_t reg_v
         m_i2c_library->beginTransmission(m_i2c_address);
         m_i2c_library->write((uint8_t)reg_addr);
         if (m_i2c_library->endTransmission(false) != 0) return -EIO;
-        if (m_i2c_library->requestFrom(m_i2c_address, (uint8_t)count, (uint8_t) true) != count) return -EIO;
+        if (m_i2c_library->requestFrom(m_i2c_address, (uint8_t)count, (uint8_t)true) != count) return -EIO;
         for (size_t i = 0; i < count; i++) {
             reg_values[i] = m_i2c_library->read();
         }
@@ -1152,10 +1243,14 @@ int lis2dh12::register_read(const enum lis2dh12_register reg_addr, uint8_t reg_v
 }
 
 /**
- * Writes a value in a register of the device over i2c or spi.
- * @param[in] reg_addr The address of the register.
- * @param[in] reg_value The new value of the register.
- * @return 0 in case of success, or a negative error code otherwise.
+ * @brief Writes a value to a register
+ *
+ * Low-level function to directly write a register over I2C or SPI. Most users
+ * should use the higher-level functions instead.
+ *
+ * @param[in] reg_addr Register address to write
+ * @param[in] reg_value Value to write to the register
+ * @return 0 on success, or a negative error code otherwise
  */
 int lis2dh12::register_write(const enum lis2dh12_register reg_addr, const uint8_t reg_value) {
 
